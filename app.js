@@ -1,60 +1,42 @@
+var socketio = require('socket.io');
 var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
+var http = require('http');
+var fs = require('fs');
 
-var routes = require('./routes/index');
-var users = require('./routes/users');
+var seats = [
+	[1,1,1,1,0,0,0,1,1,1],
+	[1,1,1,1,1,1,1,1,0,1],
+	[1,1,1,1,1,1,1,1,0,1],
+	[1,1,1,1,1,1,1,1,0,1]
+];
 
 var app = express();
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+app.use(app.router);
 
-// uncomment after placing your favicon in /public
-//app.use(favicon(__dirname + '/public/favicon.ico'));
-app.use(logger('dev'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.use('/', routes);
-app.use('/users', users);
-
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
+app.get('/', function(request, response, next){
+	fs.readFile('HTMLPage.html', function(error, data){
+		response.send(data.toString());
+	});
 });
 
-// error handlers
-
-// development error handler
-// will print stacktrace
-if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-      message: err.message,
-      error: err
-    });
-  });
-}
-
-// production error handler
-// no stacktraces leaked to user
-app.use(function(err, req, res, next) {
-  res.status(err.status || 500);
-  res.render('error', {
-    message: err.message,
-    error: {}
-  });
+app.get('/seats', function(request, response, next){
+	response.send(seats);
 });
 
+var server = http.createServer(app);
+server.listen(3000, function(){
+	console.log('Server Running');
+});
 
-module.exports = app;
+var io = socketio.listen(server);
+io.sockets.on('connection', function (socket){
+	socket.on('reserve', function(data){
+		seats[data.y][data.x] = 2;
+		io.sockets.emit('reserve', data);
+	});
+	socket.on('cancel', function(data){
+		seats[data.y][data.x] = 1;
+		io.sockets.emit('cancel', data);
+	});
+});
