@@ -12,7 +12,7 @@ var http = require('http');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || '3333');
 app.set('port', port);
 
 /**
@@ -88,3 +88,15 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+/**
+ * Socket.io Server
+ */
+ var io = require('socket.io')(server);
+ io.on('connection', function(socket) {
+    socket.on('reserve', function(data) {
+      
+      app.seats[data.y][data.x] = 2;
+      io.emit('reserve', data);
+    });
+ });
